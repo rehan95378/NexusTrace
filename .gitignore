@@ -11,8 +11,11 @@ venv/
 
 # Env files (never commit real secrets)
 .env
-!.env.example
+.env.example
 
 # OS/editor
 .DS_Store
 .vscode/
+
+
+.gitignore
