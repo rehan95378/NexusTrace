@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
+
+from utils.neo4j_driver import verify_connectivity
 
 app = FastAPI(title="SIH26189 Backend")
 
@@ -16,7 +21,12 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "backend"}
+    db_ok = verify_connectivity()
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "service": "backend",
+        "neo4j_connected": db_ok,
+    }
 
 
 @app.get("/")
