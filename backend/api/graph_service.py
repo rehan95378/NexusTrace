@@ -113,7 +113,9 @@ def get_alerts():
 def merge_ingested(entities: list[dict], relationships: list[dict]) -> None:
     """In seed mode, reflect a just-ingested report in the in-memory graph so
     the demo graph grows as reports are uploaded (Neo4j optional). Idempotent:
-    entities merge on canonical label; edges merge on (source,target,type)."""
+    entities merge on canonical label; edges merge on (source,target,type).
+    Afterwards analytical flags + centrality are recomputed over the whole graph
+    (same Stage-7 logic the Neo4j path uses, run on the in-memory copy)."""
     if not _seed_mode():
         return
 
@@ -133,7 +135,7 @@ def merge_ingested(entities: list[dict], relationships: list[dict]) -> None:
                     "id": cid,
                     "label": label,
                     "type": etype,
-                    "centrality": 0.5,
+                    "centrality": 0.0,
                     "anomaly_flags": [],
                 }
             )
@@ -170,3 +172,131 @@ def merge_ingested(entities: list[dict], relationships: list[dict]) -> None:
                     "confidence": float(rel.get("confidence") or 0.0),
                 }
             )
+
+    # Stage 7 captured on the in-memory graph so new uploads get real flags too.
+    _recompute_seed_flags()
+
+
+def promote(item: dict) -> bool:
+    """Promote an analyst-approved review item into the graph.
+
+    Relationship items encode endpoints as "source -> target" text; entity items
+    are a single label. In seed mode the edge/node is merged into the in-memory
+    graph and flags recomputed. In Neo4j mode we attempt a real write and fall
+    back to the in-memory merge only if Neo4j is unreachable. Returns True when
+    the item was surfaced.
+    """
+    if not item:
+        return False
+    kind = item.get("kind")
+    conf = float(item.get("confidence") or 0.0)
+    src_doc = item.get("source_doc_id")
+
+    entities: list[dict] = []
+    relationships: list[dict] = []
+
+    if kind == "entity":
+        label = str(item.get("text") or "").strip()
+        if not label:
+            return False
+        entities.append({
+            "text": label,
+            "type": item.get("type") or "Unknown",
+            "confidence": conf,
+            "method": "review_promoted",
+        })
+    elif kind == "relationship":
+        raw = str(item.get("text") or "")
+        if "->" not in raw:
+            return False
+        src, tgt = (p.strip() for p in raw.split("->", 1))
+        if not src or not tgt:
+            return False
+        rtype = (item.get("type") or item.get("source_type") or "ASSOCIATION") or "ASSOCIATION"
+        relationships.append({
+            "source": src,
+            "target": tgt,
+            "type": rtype,
+            "source_type": rtype,
+            "weight": int(item.get("weight") or 1),
+            "confidence": conf,
+            "source_doc_id": src_doc,
+        })
+    else:
+        return False
+
+    if _seed_mode():
+        merge_ingested(entities, relationships)
+        return True
+
+    # Neo4j mode — try to write; fall back to the in-memory demo graph if the
+    # DB is unreachable so the analyst still sees the change.
+    try:
+        from pipeline.graph.writer import get_driver, write_entities, write_relationships
+        driver = get_driver()
+        write_entities(entities, driver)
+        write_relationships(relationships, driver)
+        return True
+    except Exception:
+        merge_ingested(entities, relationships)
+        return True
+
+
+def _recompute_seed_flags() -> None:
+    """Run Stage-7 centrality + anomaly heuristics over the in-memory SEED graph.
+
+    Mirrors pipeline/analytics/analyzer.compute_analytics but without Neo4j:
+    builds a networkx DiGraph from SEED and rewrites each node's centrality and
+    anomaly_flags. Never raises — flaky optional logic must not break ingest.
+    """
+    try:
+        import networkx as nx
+
+        G = nx.DiGraph()
+        for n in SEED["nodes"]:
+            G.add_node(n["id"], type=n.get("type"), label=n.get("label"))
+        for e in SEED["edges"]:
+            G.add_edge(e["source"], e["target"], weight=float(e.get("weight") or 1))
+
+        if not G.nodes or not G.edges:
+            return
+
+        centrality = nx.betweenness_centrality(G, weight="weight") if len(G) > 1 else {}
+        if centrality:
+            mean_c = sum(centrality.values()) / len(centrality)
+            std_c = (sum((v - mean_c) ** 2 for v in centrality.values()) / len(centrality)) ** 0.5
+            threshold = mean_c + 2 * std_c if std_c > 0 else mean_c * 1.5
+        else:
+            threshold = 0
+
+        by_id = {n["id"]: n for n in SEED["nodes"]}
+        for nid, c in centrality.items():
+            by_id.setdefault(nid, {})["_c"] = c
+
+        # cross-case: a Phone/Vehicle connected to 2+ distinct Person neighbours
+        cross_case = set()
+        for n in SEED["nodes"]:
+            if n.get("type") not in ("Phone", "Vehicle"):
+                continue
+            persons = {
+                nb for nb in G.neighbors(n["id"])
+                if by_id.get(nb, {}).get("type") == "Person"
+            }
+            persons |= {
+                nb for nb in G.predecessors(n["id"])
+                if by_id.get(nb, {}).get("type") == "Person"
+            }
+            if len(persons) >= 2:
+                cross_case.add(n["id"])
+
+        for n in SEED["nodes"]:
+            c = centrality.get(n["id"], 0.0)
+            flags = []
+            if c > threshold:
+                flags.append("high_centrality")
+            if n["id"] in cross_case:
+                flags.append("cross_case_identifier")
+            n["centrality"] = round(float(c), 4)
+            n["anomaly_flags"] = flags
+    except Exception:  # pragma: no cover - optional dependency / data issue
+        return

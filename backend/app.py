@@ -25,6 +25,27 @@ from api.routers import (
     review_router,
 )
 
+from api.config import config
+
+
+# Refuse to start with a known-insecure JWT signing key. The demo .env/.env
+# placeholders are "CHANGE_ME" / "change-this-to-a-random-string"; if they reach
+# here the server must not run, or anyone knowing the default can forge tokens.
+def _assert_secure_secret() -> None:
+    secret = (config["jwt"].get("secret") or "").strip()
+    # Block only when no real override was provided — i.e. the secret is still
+    # the config.json placeholder, or empty. Any explicit value (including a
+    # short local one like "dev") lets the demo run; anyone can then forge
+    # tokens, so this is only a guard against the default, not a security seal.
+    if not secret or secret.lower() == "change_me":
+        raise RuntimeError(
+            "Refusing to start: JWT_SECRET was never set (still the default). "
+            "Set a real JWT_SECRET in backend/.env or the environment."
+        )
+
+
+_assert_secure_secret()
+
 app = FastAPI(title="NexusTrace API", version="0.1.0")
 
 # SIH26: NCRB / Ministry of Home Affairs / Women Safety Division

@@ -2,7 +2,21 @@ import json
 import os
 import pathlib
 
+from dotenv import load_dotenv
+
+# Load backend/.env BEFORE reading any config/env below so NEO4J_*, JWT_SECRET,
+# port etc. are honoured locally. Idempotent + safe if the file is absent.
+load_dotenv()
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, "")
+    try:
+        return int(raw) if raw else default
+    except ValueError:
+        return default
 
 
 def load_config():

@@ -1,0 +1,80 @@
+/* RelationshipList.css */
+.relationship-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rel-group {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.rel-group h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #1f2937;
+}
+
+.rel-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rel-item {
+  background: #f9fafb;
+  border-left: 4px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 13px;
+}
+
+.rel-item.high-conf {
+  border-left-color: #10b981;
+  background: #f0fdf4;
+}
+
+.rel-item.low-conf {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.rel-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.rel-text strong {
+  color: #1e40af;
+}
+
+.rel-text .arrow {
+  color: #6b7280;
+  font-weight: normal;
+}
+
+.rel-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.rel-meta .confidence {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.rel-meta .weight {
+  color: #6b7280;
+}

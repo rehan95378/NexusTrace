@@ -1,0 +1,233 @@
+/* GraphVisualization.css */
+.graph-container {
+  display: flex;
+  flex: 1;
+  gap: 20px;
+  background: #f3f4f6;
+  padding: 20px;
+  border-radius: 12px;
+  min-height: 0;
+}
+
+.graph-canvas {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #e5e7eb;
+}
+
+.graph-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 32px 48px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  font-size: 16px;
+  color: #6b7280;
+  z-index: 10;
+  font-weight: 500;
+}
+
+.graph-sidebar {
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 650px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+}
+
+.node-detail {
+  flex: 1;
+}
+
+.node-detail h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  color: #1f2937;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-row:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.detail-row strong {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+}
+
+.type-badge {
+  display: inline-block;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.score {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.flags {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.flag-high_centrality {
+  background: #fee2e2;
+  color: #991b1b;
+  border-left: 3px solid #dc2626;
+}
+
+.flag-cross_case_identifier {
+  background: #f3e8ff;
+  color: #581c87;
+  border-left: 3px solid #a855f7;
+}
+
+.btn-close {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-close:hover {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  border-color: #9ca3af;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-close:active {
+  transform: scale(0.98);
+}
+
+/* Scrollbar styling */
+.graph-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.graph-sidebar::-webkit-scrollbar-track {
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.graph-sidebar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.graph-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Cytoscape canvas styling */
+.graph-canvas canvas {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .graph-sidebar {
+    width: 280px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .graph-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .graph-canvas {
+    min-height: 500px;
+  }
+
+  .graph-sidebar {
+    width: 100%;
+    max-height: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .graph-container {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .graph-canvas {
+    min-height: 350px;
+  }
+
+  .graph-sidebar {
+    max-height: 200px;
+    padding: 16px;
+  }
+
+  .node-detail h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .detail-row {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+}

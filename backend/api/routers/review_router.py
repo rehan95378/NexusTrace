@@ -17,11 +17,19 @@ def get_review(kind: str | None = None, status: str | None = None, _user=Depends
 
 @router.post("/{item_id}/approve")
 def approve(item_id: int, _user=Depends(get_user_from_token)):
-    """Analyst confirms an item — record that it was validated."""
+    """Analyst confirms an item — record approval and promote it into the graph.
+
+    Promotion surfaces the formerly low-confidence entity/edge in the network so
+    the analyst's decision has a real effect (empty until promoted otherwise).
+    """
     item = resolve(item_id, "approve")
     if item is None:
         raise HTTPException(404, f"No review item with id {item_id}")
-    return {"success": True, "item": item}
+
+    from api.graph_service import promote
+    promoted = promote(item) if item.get("status") == "approved" else False
+
+    return {"success": True, "item": item, "promoted_to_graph": promoted}
 
 
 @router.post("/{item_id}/reject")

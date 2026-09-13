@@ -63,7 +63,7 @@ def compute_analytics(driver=None) -> dict:
     anomalies = {nid: c for nid, c in centrality.items() if c > threshold}
 
     # Cross-case detection: same phone/vehicle appearing in multiple independent nodes
-    cross_case_flags = _detect_cross_case_identifiers(nodes)
+    cross_case_flags = _detect_cross_case_identifiers(G, nodes)
 
     # Write results back to Neo4j
     with driver.session() as s:
@@ -95,14 +95,29 @@ def compute_analytics(driver=None) -> dict:
     }
 
 
-def _detect_cross_case_identifiers(nodes: dict) -> set:
-    """Flag phone/vehicle numbers appearing in multiple independent person nodes."""
-    # Simple heuristic: if a Phone/Vehicle node has multiple Person neighbors,
-    # it's a cross-case link.
+def _detect_cross_case_identifiers(graph, nodes: dict) -> set:
+    """Flag Phone/Vehicle nodes that connect to 2+ distinct Person neighbours.
+
+    A phone or vehicle owned/called by many different people is a candidate for
+    the same physical identifier appearing across otherwise-unrelated cases —
+    the classic cross-case linkage signal. We walk the (directed) networkx
+    graph and count distinct Person neighbours for each Phone/Vehicle node.
+    """
     flags = set()
-    phone_vehicles = {nid: n for nid, n in nodes.items() if n.get("type") in ("Phone", "Vehicle")}
-    for nid in phone_vehicles:
-        # In a full implementation, check edges; for now, just flag all phones/vehicles
-        # as potential cross-case identifiers (conservative).
-        flags.add(nid)
+    for nid, node in nodes.items():
+        if node.get("type") not in ("Phone", "Vehicle"):
+            continue
+        persons = {
+            neighbor
+            for neighbor in graph.neighbors(nid)
+            if nodes.get(neighbor, {}).get("type") == "Person"
+        }
+        # also consider people pointing *into* this node (e.g. phone called by)
+        persons |= {
+            neighbor
+            for neighbor in graph.predecessors(nid)
+            if nodes.get(neighbor, {}).get("type") == "Person"
+        }
+        if len(persons) >= 2:
+            flags.add(nid)
     return flags
