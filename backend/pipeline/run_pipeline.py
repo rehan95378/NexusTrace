@@ -34,10 +34,7 @@ def _entity_counts(entities: list[dict]) -> Counter:
 
 def _run() -> None:
     from pipeline.ingestion.loader import ingest_directory
-    from pipeline.preprocessing.cleaner import split_sentences
-    from pipeline.extraction.extractor import extract_entities
-    from pipeline.resolution.resolver import resolve_entities
-    from pipeline.relationships.builder import build_relationships
+    from pipeline.run_stages import run_stages
 
     raw_dir = Path(RAW_DIR)
     if not raw_dir.is_dir():
@@ -47,50 +44,15 @@ def _run() -> None:
     records = ingest_directory(raw_dir)
     print(f"[run_pipeline] ingested {len(records)} record(s)")
 
-    # Stage 2+3: per-record clean/split and extraction.
-    all_sentences: list[tuple[str, str]] = []   # (sentence, source_doc_id)
-    all_entities: list[dict] = []
+    # Stages 2-8 run through the shared runner (same path the ingest API uses).
+    staged = run_stages(records)
+    resolved: list[dict] = staged["resolved"]
+    final_rels: list[dict] = staged["relationships"]
+    graph_entities: list[dict] = staged["graph_entities"]
+    graph_rels: list[dict] = staged["graph_relationships"]
+    review_items: list[dict] = staged["review_items"]
 
-    for rec in records:
-        doc_id = rec.get("source_doc_id")
-        text = str(rec.get("raw_content") or "")
-        sentences = split_sentences(text)
-        for s in sentences:
-            all_sentences.append((s, doc_id))
-        all_entities.extend(extract_entities(rec))
-
-    print(f"[run_pipeline] split into {len(all_sentences)} sentence(s); "
-          f"extracted {len(all_entities)} raw entity candidate(s)")
-
-    # Stage 4: resolve entities across ALL records together.
-    resolved = resolve_entities(all_entities)
     print(f"[run_pipeline] resolved to {len(resolved)} canonical entity(ies)")
-
-    # Stage 5: build relationships, grouped per source document.
-    relationships: list[dict] = []
-    for sentence, doc_id in all_sentences:
-        relationships.extend(
-            build_relationships([sentence], resolved, doc_id)
-        )
-    # De-dupe identical (source, target, type) across the accumulated list.
-    deduped: dict[tuple, dict] = {}
-    for rel in relationships:
-        key = (rel["source"], rel["target"], rel["type"])
-        if key not in deduped:
-            deduped[key] = dict(rel)
-        elif rel["confidence"] > deduped[key]["confidence"]:
-            deduped[key]["confidence"] = rel["confidence"]
-    final_rels = list(deduped.values())
-
-    # Stage 8: route low-confidence items to the review queue. Only verified
-    # items enter the main graph. Runs in every mode so the queue stays
-    # populated for human review even without a Neo4j write.
-    from pipeline.review.queue import split
-
-    routed = split(resolved, final_rels)
-    graph_entities: list[dict] = routed["graph_entities"]
-    graph_rels: list[dict] = routed["graph_relationships"]
-    review_items: list[dict] = routed["review_items"]
     print(
         f"[run_pipeline] {len(graph_rels)} verified relationship(s) -> graph; "
         f"{len(review_items)} low-confidence item(s) -> review queue"

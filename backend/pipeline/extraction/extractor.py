@@ -186,13 +186,35 @@ def _csv_phones(record: dict, source_doc_id: str) -> list[dict]:
     return out
 
 
-def _spacy_entities(record: dict, source_doc_id: str) -> list[dict]:
-    """OPTIONAL spacy NER enrichment. Runs only when spacy + a model are
-    available; any failure falls back silently to emitting nothing."""
+_SPACY_NLP = None
+
+
+def _load_spacy():
+    """Return a cached spaCy nlp model, False if it can't be loaded (memoised)."""
+    global _SPACY_NLP
+    if _SPACY_NLP is not None:
+        return _SPACY_NLP
     try:  # pragma: no cover - depends on optional model download
         import spacy  # type: ignore
 
-        nlp = spacy.load("en_core_web_sm")  # heavy model; may be absent
+        _SPACY_NLP = spacy.load("en_core_web_sm")  # heavy; may be absent
+    except Exception:  # pragma: no cover - optional dependency
+        _SPACY_NLP = False
+    return _SPACY_NLP
+
+
+def _spacy_entities(record: dict, source_doc_id: str) -> list[dict]:
+    """OPTIONAL spacy NER enrichment. Runs only when spacy + a model are
+    available; any failure falls back silently to emitting nothing.
+
+    The model is loaded once and memoised at module level — loading it per call
+    dominated runtime otherwise (see _load_spacy).
+    """
+    nlp = _load_spacy()
+    if not nlp:
+        return []
+
+    try:  # pragma: no cover - parsing a document is not expected to fail
         doc = nlp(record.get("raw_content") or "")
         out = []
         for ent in doc.ents:

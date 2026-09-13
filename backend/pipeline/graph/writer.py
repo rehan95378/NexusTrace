@@ -16,7 +16,13 @@ def get_driver():
     from api.config import config
 
     uri = os.getenv("NEO4J_URI") or config["neo4j"]["uri"]
-    user = os.getenv("NEO4J_USER") or config["neo4j"]["user"]
+    # Accept both spellings of the user var (the .env historically used
+    # NEO4J_USERNAME, the README/code used NEO4J_USER). Prefer NEO4J_USER.
+    user = (
+        os.getenv("NEO4J_USER")
+        or os.getenv("NEO4J_USERNAME")
+        or config["neo4j"]["user"]
+    )
     password = os.getenv("NEO4J_PASSWORD") or config["neo4j"]["password"]
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
@@ -64,6 +70,18 @@ def write_entities(entities: list[dict], driver=None) -> int:
     return count
 
 
+# Relationship types the pipeline actually emits. Anything else is coerced to
+# ASSOCIATION so we never inject an arbitrary string into a Cypher relationship
+# TYPE (which must be a safe, case-sensitive identifier).
+_VALID_REL_TYPES = {"FINANCIAL", "COMMUNICATION", "FAMILY", "ASSOCIATION"}
+
+
+def _safe_rel_type(raw) -> str:
+    """Coerce a relationship type to a whitelisted Cypher type name."""
+    rtype = "".join(ch for ch in str(raw or "").upper() if ch.isalnum() or ch == "_")
+    return rtype if rtype in _VALID_REL_TYPES else "ASSOCIATION"
+
+
 def write_relationships(relationships: list[dict], driver=None) -> int:
     """Write relationships to Neo4j as edges.
 
@@ -77,7 +95,7 @@ def write_relationships(relationships: list[dict], driver=None) -> int:
         for rel in relationships:
             source_text = rel.get("source")
             target_text = rel.get("target")
-            rel_type = rel.get("type")
+            rel_type = _safe_rel_type(rel.get("type", rel.get("source_type")))
             weight = int(rel.get("weight") or 1)
             confidence = float(rel.get("confidence") or 0.0)
 
