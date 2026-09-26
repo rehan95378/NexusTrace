@@ -13,7 +13,7 @@ for consumption by routers/graph.py's GET /graph/all endpoint.
 """
 
 from utils import neo4j_driver as db
-from services.pretrained.entity_resolver import EntityResolver
+from services.common.entity_resolver import EntityResolver
 
 # Create resolver instance for cross-case matching
 _resolver = EntityResolver()

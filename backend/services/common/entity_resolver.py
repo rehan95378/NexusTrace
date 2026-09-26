@@ -2,7 +2,7 @@
 Entity resolver - Resolve entity aliases using fuzzy matching.
 """
 from difflib import SequenceMatcher
-from .config import FUZZY_MATCH_THRESHOLD
+from .settings import FUZZY_MATCH_THRESHOLD
 
 
 class EntityResolver:

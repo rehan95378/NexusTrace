@@ -9,6 +9,7 @@ const NODE_TYPES = [
   { key: 'vehicles', type: 'Vehicle', label: 'Vehicle' },
   { key: 'phones', type: 'Phone', label: 'Phone' },
   { key: 'organizations', type: 'Organization', label: 'Organization' },
+  { key: 'bank_accounts', type: 'BankAccount', label: 'BankAccount' },
 ]
 
 const TABS = [
@@ -86,7 +87,8 @@ export default function GraphEditPanel({ caseId, allCasesMode, onClose, onChange
         'location': 'Location',
         'vehicle': 'Vehicle',
         'phone': 'Phone',
-        'organization': 'Organization'
+        'organization': 'Organization',
+        'bank_account': 'BankAccount'
       }
 
       // Defensive: ensure entityList is an array

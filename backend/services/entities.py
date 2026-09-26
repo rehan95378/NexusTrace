@@ -14,13 +14,14 @@ PROP_MAP = {
     "Vehicle": "plate",
     "Phone": "number",
     "Organization": "name",
+    "BankAccount": "account_number",
 }
 
 
 def get_entities_for_case(case_id):
     """
     Get all entities for a specific case, grouped by type.
-    Returns lists of people, locations, vehicles, phones, organizations.
+    Returns lists of people, locations, vehicles, phones, organizations, bank_accounts.
     """
     people = [r["v"] for r in db.query(
         "MATCH (n:Person {case_id: $case_id}) RETURN n.name AS v ORDER BY v",
@@ -47,13 +48,19 @@ def get_entities_for_case(case_id):
         {"case_id": case_id}
     )]
 
+    bank_accounts = [r["v"] for r in db.query(
+        "MATCH (n:BankAccount {case_id: $case_id}) RETURN n.account_number AS v ORDER BY v",
+        {"case_id": case_id}
+    )]
+
     return {
         "people": people,
         "locations": locations,
         "vehicles": vehicles,
         "phones": phones,
         "organizations": orgs,
-        "is_processed": bool(people or locations or vehicles or phones or orgs),
+        "bank_accounts": bank_accounts,
+        "is_processed": bool(people or locations or vehicles or phones or orgs or bank_accounts),
     }
 
 
@@ -74,6 +81,7 @@ def get_all_entities():
         "vehicles": "vehicle",
         "phones": "phone",
         "organizations": "organization",
+        "bank_accounts": "bank_account",
     }
 
     for c in cases:
@@ -167,6 +175,11 @@ def get_entity_detail(case_id, label, node_id):
         {"case_id": case_id, "type": label, "id": node_id},
     )
 
+    # Get source metadata (from pipeline ingestion / graph_builder)
+    source_meta = props.get("source", props.get("extraction_method", None))
+    if not source_meta and props.get("source_sentence"):
+        source_meta = props.get("source_sentence")
+
     return {
         "type": label,
         "id": node_id,
@@ -174,6 +187,7 @@ def get_entity_detail(case_id, label, node_id):
         "all_props": props,
         "case_id": case_id,
         "case_name": case_name,
+        "source": source_meta,
         "outgoing": outgoing,
         "incoming": incoming,
         "cross_outgoing": cross_outgoing,

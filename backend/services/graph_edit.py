@@ -9,13 +9,14 @@ import re
 from utils import neo4j_driver as db
 from services import audit
 
-# Entity type mapping - only these five labels exist in the schema
+# Entity type mapping - includes all Neo4j labels
 PROP_MAP = {
     "Person": "name",
     "Location": "name",
     "Vehicle": "plate",
     "Phone": "number",
     "Organization": "name",
+    "BankAccount": "account_number",
 }
 
 # Relationship type suggestions for frontend

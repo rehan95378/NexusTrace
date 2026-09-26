@@ -1,8 +1,8 @@
 """
 Relationship extractor - Extract relationships between entities using keyword triggers.
 """
-from .config import TRIGGERS
-from .entity_resolver import EntityResolver
+from .patterns import TRIGGERS
+from services.common.entity_resolver import EntityResolver
 from itertools import combinations
 
 
@@ -26,7 +26,7 @@ class RelationshipExtractor:
                 for rel_type in ["ASSOCIATE_OF", "FINANCIAL_TRAIL", "CDR_LINK"]:
                     if self._has_trigger(sent_lower, rel_type):
                         relationships.append({
-                            "type": rel_type,
+                            "relationship_type": rel_type,
                             "source": p1,
                             "target": p2,
                             "source_type": "Person",
@@ -46,7 +46,7 @@ class RelationshipExtractor:
         for person in present_people:
             for location in present_locations:
                 relationships.append({
-                    "type": "SPOTTED_AT",
+                    "relationship_type": "SPOTTED_AT",
                     "source": person,
                     "target": location,
                     "source_type": "Person",
@@ -65,7 +65,7 @@ class RelationshipExtractor:
         for person in present_people:
             for org in present_orgs:
                 relationships.append({
-                    "type": "ASSOCIATED_WITH",
+                    "relationship_type": "ASSOCIATED_WITH",
                     "source": person,
                     "target": org,
                     "source_type": "Person",
@@ -86,7 +86,7 @@ class RelationshipExtractor:
             for person in present_people:
                 for vehicle in present_vehicles:
                     relationships.append({
-                        "type": "OWNS_VEHICLE",
+                        "relationship_type": "OWNS_VEHICLE",
                         "source": person,
                         "target": vehicle,
                         "source_type": "Person",
@@ -107,7 +107,7 @@ class RelationshipExtractor:
             for person in present_people:
                 for phone in present_phones:
                     relationships.append({
-                        "type": "USES_DEVICE",
+                        "relationship_type": "USES_DEVICE",
                         "source": person,
                         "target": phone,
                         "source_type": "Person",
@@ -126,7 +126,7 @@ class RelationshipExtractor:
         if len(present_phones) >= 2 and self._has_trigger(sent_lower, "INTERCEPTED_CALL"):
             for ph1, ph2 in combinations(present_phones, 2):
                 relationships.append({
-                    "type": "INTERCEPTED_CALL",
+                    "relationship_type": "INTERCEPTED_CALL",
                     "source": ph1,
                     "target": ph2,
                     "source_type": "Phone",
@@ -145,7 +145,7 @@ class RelationshipExtractor:
         for vehicle in present_vehicles:
             for location in present_locations:
                 relationships.append({
-                    "type": "CAMERA_LOG",
+                    "relationship_type": "CAMERA_LOG",
                     "source": vehicle,
                     "target": location,
                     "source_type": "Vehicle",

@@ -141,8 +141,7 @@ export const useDeleteEdge = () => {
 export const useIngest = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ caseId, firText, cdrText, appendMode }) =>
-      api.ingest(caseId, firText, cdrText, appendMode),
+    mutationFn: ({ caseId, files, appendMode }) => api.ingest(caseId, files, appendMode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['graph'] })
       queryClient.invalidateQueries({ queryKey: ['entities'] })

@@ -126,6 +126,14 @@ export default function NodeDetailsPanel({ caseId, type, id, position, onClose }
             </div>
 
             <div className="divide-y divide-light-border/40 dark:divide-border/40">
+              <Section label="Source" count={detail.source ? 1 : 0}>
+                {detail.source && (
+                  <div className="text-xs py-0.5 font-mono text-light-text dark:text-text break-all">
+                    {String(detail.source)}
+                  </div>
+                )}
+              </Section>
+
               <Section label="Properties" count={detail.all_props ? Object.keys(detail.all_props).length : 0}>
                 {detail.all_props && Object.entries(detail.all_props).map(([key, val]) => (
                   <div key={key} className="flex justify-between gap-2 text-xs py-0.5">

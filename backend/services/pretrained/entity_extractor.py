@@ -2,7 +2,7 @@
 Entity extractor - Extract entities from text using spaCy NER and regex patterns.
 """
 import re
-from .config import (
+from .patterns import (
     VEHICLE_PATTERNS, PHONE_PATTERNS, KNOWN_ORGS,
     STOP_WORDS, LOCATION_NOISE, DATE_PATTERNS
 )

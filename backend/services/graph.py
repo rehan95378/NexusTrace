@@ -11,6 +11,7 @@ COLOR_MAP = {
     "Vehicle": "#5B8DEF",
     "Phone": "#B076E0",
     "Organization": "#6FCF6F",
+    "BankAccount": "#FFA07A",
 }
 
 NODE_LABELS = list(COLOR_MAP.keys())
@@ -48,15 +49,25 @@ def get_graph(case_id):
     label_filter = " OR ".join(f"n:{label}" for label in NODE_LABELS)
     node_rows = db.query(
         f"MATCH (n {{case_id: $case_id}}) WHERE {label_filter} "
-        "RETURN n.id AS id, labels(n) AS labels",
+        "RETURN n.id AS id, labels(n) AS labels, n.name AS name, n.plate AS plate, n.number AS number, n.account_number AS account_number",
         {"case_id": case_id},
     )
     for record in node_rows:
         label = record["labels"][0] if record["labels"] else "Unknown"
         node_id = record["id"]
+        # Display readable name
+        display_name = None
+        if label == "Vehicle":
+            display_name = record.get("plate", node_id)
+        elif label == "Phone":
+            display_name = record.get("number", node_id)
+        elif label == "BankAccount":
+            display_name = record.get("account_number", node_id)
+        else:
+            display_name = record.get("name", node_id)
         key = node_key(label, node_id)
         if key not in seen:
-            nodes.append({"id": key, "label": f"{label}: {node_id}", "type": label,
+            nodes.append({"id": key, "label": display_name or node_id, "type": label,
                           "color": COLOR_MAP.get(label, "#8A8A8A")})
             seen.add(key)
 

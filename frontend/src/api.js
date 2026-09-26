@@ -1,8 +1,14 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 async function request(path, options = {}) {
+  // Don't set Content-Type for FormData — browser adds boundary
+  const headers = {}
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...options,
   })
   if (!res.ok) {
@@ -29,11 +35,17 @@ export const api = {
   deleteCase: (caseId) => request(`/cases/${caseId}`, { method: 'DELETE' }),
 
   // Everything below is scoped to one case
-  ingest: (caseId, fir_text, cdr_text, append_mode) =>
-    request(`/cases/${caseId}/ingest`, {
+  // File-based ingestion (single or multiple files)
+  ingest: (caseId, files, append_mode) => {
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    formData.append('append_mode', append_mode)
+    return request(`/cases/${caseId}/ingest/files`, {
       method: 'POST',
-      body: JSON.stringify({ fir_text, cdr_text, append_mode }),
-    }),
+      body: formData,
+      // Let browser set Content-Type with boundary
+    })
+  },
   clearCase: (caseId) => request(`/cases/${caseId}/clear`, { method: 'POST' }),
   entities: (caseId) => request(`/cases/${caseId}/entities`),
   allEntities: () => request('/entities/all'),
